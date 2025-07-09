@@ -25,9 +25,7 @@ def _mount(device, use_default):
     """
     opts = "defaults" if use_default else "subvol=/"
     dest = tempfile.mkdtemp()
-    res = __states__["mount.mounted"](
-        dest, device=device, fstype="btrfs", opts=opts, persist=False
-    )
+    res = __states__["mount.mounted"](dest, device=device, fstype="btrfs", opts=opts, persist=False)
     if not res["result"]:
         log.error("Cannot mount device %s in %s", device, dest)
         _umount(dest)
@@ -40,6 +38,7 @@ def _umount(path):
     Umount and clean the temporary place.
     """
     __states__["mount.unmounted"](path)
+    # pylint: disable-next=undefined-variable
     __utils__["files.rm_rf"](path)
 
 
@@ -147,6 +146,7 @@ def subvolume_created(
         force it as default if ``set_default`` is True
 
     """
+    del device
     ret = {
         "name": name,
         "result": False,
@@ -216,6 +216,7 @@ def subvolume_deleted(name, device, commit=False, __dest=None):
         Wait until the transaction is over
 
     """
+    del device
     ret = {
         "name": name,
         "result": False,
@@ -301,6 +302,7 @@ def properties(name, device, use_default=False, __dest=None, **properties):
     object.
 
     """
+    del use_default
     ret = {
         "name": name,
         "result": False,
@@ -324,9 +326,8 @@ def properties(name, device, use_default=False, __dest=None, **properties):
         return ret
 
     # Convert the booleans to lowercase
-    properties = {
-        k: v if type(v) is not bool else str(v).lower() for k, v in properties.items()
-    }
+    #  pylint: disable-next=unidiomatic-typecheck
+    properties = {k: v if type(v) is not bool else str(v).lower() for k, v in properties.items()}
 
     current_properties = {}
     try:
@@ -358,9 +359,7 @@ def properties(name, device, use_default=False, __dest=None, **properties):
         current_properties = __salt__["btrfs.properties"](path)
         properties_failed = _diff_properties(properties, current_properties)
         if properties_failed:
-            msg = "Properties {} failed to be changed in {}".format(
-                properties_failed, name
-            )
+            msg = f"Properties {properties_failed} failed to be changed in {name}"
             ret["comment"].append(msg)
             return ret
 

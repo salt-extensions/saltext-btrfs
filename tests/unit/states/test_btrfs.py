@@ -3,21 +3,24 @@
 :platform:      Linux
 """
 
-import pytest
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
-import salt.states.btrfs as btrfs
+import pytest
 import salt.utils.platform
 from salt.exceptions import CommandExecutionError
-from tests.support.mock import MagicMock, patch
 
-pytestmark = pytest.mark.skipif(
-    salt.utils.platform.is_windows(), reason="Not supported on Windows"
-)
+from saltext.btrfs.states import btrfs
+
+pytestmark = pytest.mark.skipif(salt.utils.platform.is_windows(), reason="Not supported on Windows")
 
 
 @pytest.fixture
 def configure_loader_modules():
     return {btrfs: {"__salt__": {}, "__states__": {}, "__utils__": {}}}
+
+
+setattr(configure_loader_modules, "_pytestfixturefunction", True)
 
 
 def test__mount_fails():
@@ -27,9 +30,11 @@ def test__mount_fails():
     states_mock = {
         "mount.mounted": MagicMock(return_value={"result": False}),
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "tempfile.mkdtemp", return_value="/tmp/xxx"
-    ) as mkdtemp, patch.dict(btrfs.__states__, states_mock):
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("tempfile.mkdtemp", return_value="/tmp/xxx") as mkdtemp,
+        patch.dict(btrfs.__states__, states_mock),
+    ):
         assert btrfs._mount("/dev/sda1", use_default=False) is None
         mkdtemp.assert_called_once()
         states_mock["mount.mounted"].assert_called_with(
@@ -49,9 +54,11 @@ def test__mount():
     states_mock = {
         "mount.mounted": MagicMock(return_value={"result": True}),
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "tempfile.mkdtemp", return_value="/tmp/xxx"
-    ) as mkdtemp, patch.dict(btrfs.__states__, states_mock):
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("tempfile.mkdtemp", return_value="/tmp/xxx") as mkdtemp,
+        patch.dict(btrfs.__states__, states_mock),
+    ):
         assert btrfs._mount("/dev/sda1", use_default=False) == "/tmp/xxx"
         mkdtemp.assert_called_once()
         states_mock["mount.mounted"].assert_called_with(
@@ -71,9 +78,11 @@ def test__mount_use_default():
     states_mock = {
         "mount.mounted": MagicMock(return_value={"result": True}),
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "tempfile.mkdtemp", return_value="/tmp/xxx"
-    ) as mkdtemp, patch.dict(btrfs.__states__, states_mock):
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("tempfile.mkdtemp", return_value="/tmp/xxx") as mkdtemp,
+        patch.dict(btrfs.__states__, states_mock),
+    ):
         assert btrfs._mount("/dev/sda1", use_default=True) == "/tmp/xxx"
         mkdtemp.assert_called_once()
         states_mock["mount.mounted"].assert_called_with(
@@ -96,9 +105,7 @@ def test__umount():
     utils_mock = {
         "files.rm_rf": MagicMock(),
     }
-    with patch.dict(btrfs.__states__, states_mock), patch.dict(
-        btrfs.__utils__, utils_mock
-    ):
+    with patch.dict(btrfs.__states__, states_mock), patch.dict(btrfs.__utils__, utils_mock):
         btrfs._umount("/tmp/xxx")
         states_mock["mount.unmounted"].assert_called_with("/tmp/xxx")
         utils_mock["files.rm_rf"].assert_called_with("/tmp/xxx")
@@ -109,9 +116,7 @@ def test__is_default_not_default():
     Test if the subvolume is the current default.
     """
     salt_mock = {
-        "btrfs.subvolume_show": MagicMock(
-            return_value={"@/var": {"subvolume id": "256"}}
-        ),
+        "btrfs.subvolume_show": MagicMock(return_value={"@/var": {"subvolume id": "256"}}),
         "btrfs.subvolume_get_default": MagicMock(return_value={"id": "5"}),
     }
     with patch.dict(btrfs.__salt__, salt_mock):
@@ -125,9 +130,7 @@ def test__is_default():
     Test if the subvolume is the current default.
     """
     salt_mock = {
-        "btrfs.subvolume_show": MagicMock(
-            return_value={"@/var": {"subvolume id": "256"}}
-        ),
+        "btrfs.subvolume_show": MagicMock(return_value={"@/var": {"subvolume id": "256"}}),
         "btrfs.subvolume_get_default": MagicMock(return_value={"id": "256"}),
     }
     with patch.dict(btrfs.__salt__, salt_mock):
@@ -141,9 +144,7 @@ def test__set_default():
     Test setting a subvolume as the current default.
     """
     salt_mock = {
-        "btrfs.subvolume_show": MagicMock(
-            return_value={"@/var": {"subvolume id": "256"}}
-        ),
+        "btrfs.subvolume_show": MagicMock(return_value={"@/var": {"subvolume id": "256"}}),
         "btrfs.subvolume_set_default": MagicMock(return_value=True),
     }
     with patch.dict(btrfs.__salt__, salt_mock):
@@ -200,10 +201,11 @@ def test_subvolume_created_exists():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(btrfs.__salt__, salt_mock), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.subvolume_created(name="@/var", device="/dev/sda1") == {
             "name": "@/var",
@@ -226,14 +228,12 @@ def test_subvolume_created_exists_decorator():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch(
-        "tempfile.mkdtemp", return_value="/tmp/xxx"
-    ) as mkdtemp, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch("tempfile.mkdtemp", return_value="/tmp/xxx"),
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.subvolume_created("@/var", "/dev/sda1") == {
             "name": "@/var",
@@ -256,10 +256,11 @@ def test_subvolume_created_exists_test():
     opts_mock = {
         "test": True,
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(btrfs.__salt__, salt_mock), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.subvolume_created(name="@/var", device="/dev/sda1") == {
             "name": "@/var",
@@ -282,18 +283,14 @@ def test_subvolume_created_exists_was_default():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._is_default", return_value=True), patch(
-        "salt.states.btrfs._umount"
-    ) as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._is_default", return_value=True),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
-        assert btrfs.subvolume_created(
-            name="@/var", device="/dev/sda1", set_default=True
-        ) == {
+        assert btrfs.subvolume_created(name="@/var", device="/dev/sda1", set_default=True) == {
             "name": "@/var",
             "result": True,
             "changes": {},
@@ -314,18 +311,15 @@ def test_subvolume_created_exists_set_default():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._is_default", return_value=False), patch(
-        "salt.states.btrfs._set_default", return_value=True
-    ), patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._is_default", return_value=False),
+        patch("saltext.btrfs.states.btrfs._set_default", return_value=True),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
-        assert btrfs.subvolume_created(
-            name="@/var", device="/dev/sda1", set_default=True
-        ) == {
+        assert btrfs.subvolume_created(name="@/var", device="/dev/sda1", set_default=True) == {
             "name": "@/var",
             "result": True,
             "changes": {"@/var_default": True},
@@ -346,14 +340,13 @@ def test_subvolume_created_exists_set_default_no_force():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._is_default", return_value=False), patch(
-        "salt.states.btrfs._set_default", return_value=True
-    ), patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._is_default", return_value=False),
+        patch("saltext.btrfs.states.btrfs._set_default", return_value=True),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.subvolume_created(
             name="@/var",
@@ -381,18 +374,14 @@ def test_subvolume_created_exists_no_cow():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._is_cow", return_value=False), patch(
-        "salt.states.btrfs._umount"
-    ) as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._is_cow", return_value=False),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
-        assert btrfs.subvolume_created(
-            name="@/var", device="/dev/sda1", copy_on_write=False
-        ) == {
+        assert btrfs.subvolume_created(name="@/var", device="/dev/sda1", copy_on_write=False) == {
             "name": "@/var",
             "result": True,
             "changes": {},
@@ -413,20 +402,16 @@ def test_subvolume_created_exists_unset_cow():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._is_cow", return_value=True), patch(
-        "salt.states.btrfs._unset_cow", return_value=True
-    ), patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._is_cow", return_value=True),
+        patch("saltext.btrfs.states.btrfs._unset_cow", return_value=True),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
-        assert btrfs.subvolume_created(
-            name="@/var", device="/dev/sda1", copy_on_write=False
-        ) == {
+        assert btrfs.subvolume_created(name="@/var", device="/dev/sda1", copy_on_write=False) == {
             "name": "@/var",
             "result": True,
             "changes": {"@/var_no_cow": True},
@@ -451,12 +436,12 @@ def test_subvolume_created():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(btrfs.__salt__, salt_mock), patch.dict(
-        btrfs.__states__, states_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__states__, states_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.subvolume_created(name="@/var", device="/dev/sda1") == {
             "name": "@/var",
@@ -483,12 +468,12 @@ def test_subvolume_created_fails_directory():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(btrfs.__salt__, salt_mock), patch.dict(
-        btrfs.__states__, states_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__states__, states_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.subvolume_created(name="@/var", device="/dev/sda1") == {
             "name": "@/var",
@@ -515,12 +500,12 @@ def test_subvolume_created_fails():
     opts_mock = {
         "test": False,
     }
-    with patch("salt.states.btrfs._umount") as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(btrfs.__salt__, salt_mock), patch.dict(
-        btrfs.__states__, states_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__states__, states_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.subvolume_created(name="@/var", device="/dev/sda1") == {
             "name": "@/var",
@@ -612,6 +597,7 @@ def test_diff_properties_emty_na():
         "label": {"description": "Set/get label of device.", "value": "N/A"},
         "ro": {"description": "Set/get read-only flag or subvolume", "value": "N/A"},
     }
+    #  pylint: disable-next=use-implicit-booleaness-not-comparison
     assert btrfs._diff_properties(expected, current) == {}
 
 
@@ -619,9 +605,11 @@ def test_properties_subvolume_not_exists():
     """
     Test when subvolume is not present
     """
-    with patch("os.path.exists", return_value=False), patch(
-        "salt.states.btrfs._umount"
-    ) as umount, patch("salt.states.btrfs._mount", return_value="/tmp/xxx") as mount:
+    with (
+        patch("os.path.exists", return_value=False),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+    ):
         assert btrfs.properties(name="@/var", device="/dev/sda1") == {
             "name": "@/var",
             "result": False,
@@ -636,9 +624,11 @@ def test_properties_default_root_subvolume():
     """
     Test when root subvolume resolves to another subvolume
     """
-    with patch("os.path.exists", return_value=False) as exists, patch(
-        "salt.states.btrfs._umount"
-    ), patch("salt.states.btrfs._mount", return_value="/tmp/xxx") as mount:
+    with (
+        patch("os.path.exists", return_value=False) as exists,
+        patch("saltext.btrfs.states.btrfs._umount"),
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx"),
+    ):
         assert btrfs.properties(name="/", device="/dev/sda1") == {
             "name": "/",
             "result": False,
@@ -680,18 +670,14 @@ def test_properties_subvolume_fail():
     opts_mock = {
         "test": False,
     }
-    with patch("os.path.exists", return_value=True), patch(
-        "salt.states.btrfs._umount"
-    ) as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
-        assert btrfs.properties(
-            name="@/var", device="/dev/sda1", wrond_property=True
-        ) == {
+        assert btrfs.properties(name="@/var", device="/dev/sda1", wrond_property=True) == {
             "name": "@/var",
             "result": False,
             "changes": {},
@@ -728,14 +714,12 @@ def test_properties_enable_ro_subvolume():
     opts_mock = {
         "test": False,
     }
-    with patch("os.path.exists", return_value=True), patch(
-        "salt.states.btrfs._umount"
-    ) as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.properties(name="@/var", device="/dev/sda1", ro=True) == {
             "name": "@/var",
@@ -768,14 +752,12 @@ def test_properties_test():
     opts_mock = {
         "test": True,
     }
-    with patch("os.path.exists", return_value=True), patch(
-        "salt.states.btrfs._umount"
-    ) as umount, patch(
-        "salt.states.btrfs._mount", return_value="/tmp/xxx"
-    ) as mount, patch.dict(
-        btrfs.__salt__, salt_mock
-    ), patch.dict(
-        btrfs.__opts__, opts_mock
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("saltext.btrfs.states.btrfs._umount") as umount,
+        patch("saltext.btrfs.states.btrfs._mount", return_value="/tmp/xxx") as mount,
+        patch.dict(btrfs.__salt__, salt_mock),
+        patch.dict(btrfs.__opts__, opts_mock),
     ):
         assert btrfs.properties(name="@/var", device="/dev/sda1", ro=True) == {
             "name": "@/var",

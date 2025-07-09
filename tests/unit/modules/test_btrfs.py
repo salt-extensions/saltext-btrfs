@@ -1,24 +1,28 @@
 """
-    Test cases for salt.modules.btrfs
+Test cases for salt.modules.btrfs
 
-    :codeauthor: Jayesh Kariya <jayeshk@saltstack.com>
+:codeauthor: Jayesh Kariya <jayeshk@saltstack.com>
 """
 
 import os
+from unittest.mock import MagicMock
+from unittest.mock import mock_open
+from unittest.mock import patch
 
 import pytest
-
-import salt.modules.btrfs as btrfs
 import salt.utils.files
 import salt.utils.fsutils
-import salt.utils.platform
 from salt.exceptions import CommandExecutionError
-from tests.support.mock import MagicMock, mock_open, patch
+
+from saltext.btrfs.modules import btrfs
 
 
 @pytest.fixture
 def configure_loader_modules():
     return {btrfs: {"__salt__": {}}}
+
+
+setattr(configure_loader_modules, "_pytestfixturefunction", True)
 
 
 # 'version' function tests: 1
@@ -76,9 +80,7 @@ def test_defragment():
                     "passed": True,
                 }
             ]
-            mock_run = MagicMock(
-                return_value={"retcode": 1, "stderr": "", "stdout": "Salt"}
-            )
+            mock_run = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Salt"})
             with patch.dict(btrfs.__salt__, {"cmd.run_all": mock_run}):
                 mock_file = mock_open(read_data="/dev/sda1 / ext4 rw,data=ordered 0 0")
                 with patch.object(salt.utils.files, "fopen", mock_file):
@@ -90,9 +92,7 @@ def test_defragment_error():
     Test if it gives device not mount error
     """
     with patch("salt.utils.fsutils._is_device", MagicMock(return_value=True)):
-        mock_run = MagicMock(
-            return_value={"retcode": 1, "stderr": "", "stdout": "Salt"}
-        )
+        mock_run = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Salt"})
         with patch.dict(btrfs.__salt__, {"cmd.run_all": mock_run}):
             mock_file = mock_open(read_data="/dev/sda1 / ext4 rw,data=ordered 0 0")
             with patch.object(salt.utils.files, "fopen", mock_file):
@@ -109,6 +109,7 @@ def test_features():
     with patch("salt.utils.fsutils._verify_run", MagicMock(return_value=True)):
         mock = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Salt"})
         with patch.dict(btrfs.__salt__, {"cmd.run_all": mock}):
+            #  pylint: disable-next=use-implicit-booleaness-not-comparison
             assert btrfs.features() == {}
 
 
@@ -126,17 +127,13 @@ def test_usage():
             with patch.object(btrfs, "_usage_specific", mock):
                 assert btrfs.usage("/dev/sda1") == {"Salt": "salt"}
 
-        mock = MagicMock(
-            return_value={"retcode": 1, "stderr": "", "stdout": "Unallocated:\n"}
-        )
+        mock = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Unallocated:\n"})
         with patch.dict(btrfs.__salt__, {"cmd.run_all": mock}):
             mock = MagicMock(return_value={"/dev/sda1": True})
             with patch.object(btrfs, "_usage_unallocated", mock):
                 assert btrfs.usage("/dev/sda1") == {"unallocated": {"/dev/sda1": True}}
 
-        mock = MagicMock(
-            return_value={"retcode": 1, "stderr": "", "stdout": "Overall:\n"}
-        )
+        mock = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Overall:\n"})
         with patch.dict(btrfs.__salt__, {"cmd.run_all": mock}):
             mock = MagicMock(return_value={"/dev/sda1": True})
             with patch.object(btrfs, "_usage_overall", mock):
@@ -279,9 +276,7 @@ def test_convert_error():
     with patch("salt.utils.fsutils._is_device", MagicMock(return_value=True)):
         mock = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Salt"})
         with patch.dict(btrfs.__salt__, {"cmd.run_all": mock}):
-            mock = MagicMock(
-                return_value={"/dev/sda1": {"type": "ext4", "mount_point": "/"}}
-            )
+            mock = MagicMock(return_value={"/dev/sda1": {"type": "ext4", "mount_point": "/"}})
             with patch.object(salt.utils.fsutils, "_blkid_output", mock):
                 mock = MagicMock(return_value={"/dev/sda1": [{"mount_point": "/"}]})
                 with patch.object(salt.utils.fsutils, "_get_mounts", mock):
@@ -293,9 +288,7 @@ def test_convert_migration_error():
     Test if it gives migration error
     """
     with patch("salt.utils.fsutils._is_device", MagicMock(return_value=True)):
-        mock_run = MagicMock(
-            return_value={"retcode": 1, "stderr": "", "stdout": "Salt"}
-        )
+        mock_run = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Salt"})
         with patch.dict(btrfs.__salt__, {"cmd.run_all": mock_run}):
             mock_blk = MagicMock(return_value={"/dev/sda1": {"type": "ext4"}})
             with patch.object(salt.utils.fsutils, "_blkid_output", mock_blk):
@@ -311,7 +304,8 @@ def test_add():
     """
     Test if it add a devices to a BTRFS filesystem.
     """
-    with patch("salt.modules.btrfs._restripe", MagicMock(return_value={})):
+    with patch("saltext.btrfs.modules.btrfs._restripe", MagicMock(return_value={})):
+        #  pylint: disable-next=use-implicit-booleaness-not-comparison
         assert btrfs.add("/mountpoint", "/dev/sda1", "/dev/sda2") == {}
 
 
@@ -322,7 +316,8 @@ def test_delete():
     """
     Test if it delete a devices to a BTRFS filesystem.
     """
-    with patch("salt.modules.btrfs._restripe", MagicMock(return_value={})):
+    with patch("saltext.btrfs.modules.btrfs._restripe", MagicMock(return_value={})):
+        #  pylint: disable-next=use-implicit-booleaness-not-comparison
         assert btrfs.delete("/mountpoint", "/dev/sda1", "/dev/sda2") == {}
 
 
@@ -336,6 +331,7 @@ def test_properties():
     with patch("salt.utils.fsutils._verify_run", MagicMock(return_value=True)):
         mock = MagicMock(return_value={"retcode": 1, "stderr": "", "stdout": "Salt"})
         with patch.dict(btrfs.__salt__, {"cmd.run_all": mock}):
+            #  pylint: disable-next=use-implicit-booleaness-not-comparison
             assert btrfs.properties("/dev/sda1", "subvol") == {}
 
 
@@ -388,7 +384,7 @@ def test_subvolume_create_already_exists():
     """
     Test btrfs subvolume create
     """
-    with patch("salt.modules.btrfs.subvolume_exists", return_value=True):
+    with patch("saltext.btrfs.modules.btrfs.subvolume_exists", return_value=True):
         assert not btrfs.subvolume_create("var", dest="/mnt")
 
 
@@ -400,15 +396,16 @@ def test_subvolume_create():
         "cmd.run_all": MagicMock(return_value={"recode": 0}),
     }
     expected_path = os.path.join("/mnt", "var")
-    with patch(
-        "salt.modules.btrfs.subvolume_exists", return_value=False
-    ) as subvolume_exists, patch.dict(btrfs.__salt__, salt_mock):
+    with (
+        patch(
+            "saltext.btrfs.modules.btrfs.subvolume_exists", return_value=False
+        ) as subvolume_exists,
+        patch.dict(btrfs.__salt__, salt_mock),
+    ):
         assert btrfs.subvolume_create("var", dest="/mnt")
         subvolume_exists.assert_called_once()
         salt_mock["cmd.run_all"].assert_called_once()
-        salt_mock["cmd.run_all"].assert_called_with(
-            ["btrfs", "subvolume", "create", expected_path]
-        )
+        salt_mock["cmd.run_all"].assert_called_with(["btrfs", "subvolume", "create", expected_path])
 
 
 def test_subvolume_delete_fails_parameters():
@@ -436,7 +433,7 @@ def test_subvolume_delete_already_missing():
     """
     Test btrfs subvolume delete
     """
-    with patch("salt.modules.btrfs.subvolume_exists", return_value=False):
+    with patch("saltext.btrfs.modules.btrfs.subvolume_exists", return_value=False):
         assert not btrfs.subvolume_delete(name="var", names=["tmp"])
 
 
@@ -444,7 +441,7 @@ def test_subvolume_delete_already_missing_name():
     """
     Test btrfs subvolume delete
     """
-    with patch("salt.modules.btrfs.subvolume_exists", return_value=False):
+    with patch("saltext.btrfs.modules.btrfs.subvolume_exists", return_value=False):
         assert not btrfs.subvolume_delete(name="var")
 
 
@@ -452,7 +449,7 @@ def test_subvolume_delete_already_missing_names():
     """
     Test btrfs subvolume delete
     """
-    with patch("salt.modules.btrfs.subvolume_exists", return_value=False):
+    with patch("saltext.btrfs.modules.btrfs.subvolume_exists", return_value=False):
         assert not btrfs.subvolume_delete(names=["tmp"])
 
 
@@ -463,14 +460,13 @@ def test_subvolume_delete():
     salt_mock = {
         "cmd.run_all": MagicMock(return_value={"recode": 0}),
     }
-    with patch("salt.modules.btrfs.subvolume_exists", return_value=True), patch.dict(
-        btrfs.__salt__, salt_mock
+    with (
+        patch("saltext.btrfs.modules.btrfs.subvolume_exists", return_value=True),
+        patch.dict(btrfs.__salt__, salt_mock),
     ):
         assert btrfs.subvolume_delete("var", names=["tmp"])
         salt_mock["cmd.run_all"].assert_called_once()
-        salt_mock["cmd.run_all"].assert_called_with(
-            ["btrfs", "subvolume", "delete", "var", "tmp"]
-        )
+        salt_mock["cmd.run_all"].assert_called_with(["btrfs", "subvolume", "delete", "var", "tmp"])
 
 
 def test_subvolume_find_new_empty():
@@ -478,9 +474,7 @@ def test_subvolume_find_new_empty():
     Test btrfs subvolume find-new
     """
     salt_mock = {
-        "cmd.run_all": MagicMock(
-            return_value={"recode": 0, "stdout": "transid marker was 1024"}
-        ),
+        "cmd.run_all": MagicMock(return_value={"recode": 0, "stdout": "transid marker was 1024"}),
     }
     with patch.dict(btrfs.__salt__, salt_mock):
         assert btrfs.subvolume_find_new("var", "2000") == {
@@ -523,9 +517,7 @@ def test_subvolume_get_default_free():
     Test btrfs subvolume get-default
     """
     salt_mock = {
-        "cmd.run_all": MagicMock(
-            return_value={"recode": 0, "stdout": "ID 5 (FS_TREE)"}
-        ),
+        "cmd.run_all": MagicMock(return_value={"recode": 0, "stdout": "ID 5 (FS_TREE)"}),
     }
     with patch.dict(btrfs.__salt__, salt_mock):
         assert btrfs.subvolume_get_default("/mnt") == {
@@ -533,9 +525,7 @@ def test_subvolume_get_default_free():
             "name": "(FS_TREE)",
         }
         salt_mock["cmd.run_all"].assert_called_once()
-        salt_mock["cmd.run_all"].assert_called_with(
-            ["btrfs", "subvolume", "get-default", "/mnt"]
-        )
+        salt_mock["cmd.run_all"].assert_called_with(["btrfs", "subvolume", "get-default", "/mnt"])
 
 
 def test_subvolume_get_default():
@@ -556,9 +546,7 @@ def test_subvolume_get_default():
             "name": "var",
         }
         salt_mock["cmd.run_all"].assert_called_once()
-        salt_mock["cmd.run_all"].assert_called_with(
-            ["btrfs", "subvolume", "get-default", "/mnt"]
-        )
+        salt_mock["cmd.run_all"].assert_called_with(["btrfs", "subvolume", "get-default", "/mnt"])
 
 
 def test_subvolume_list_fails_parameters():
@@ -594,9 +582,7 @@ ID 258 gen 10 top level 5 path another one
             {"id": "258", "gen": "10", "top level": "5", "path": "another one"},
         ]
         salt_mock["cmd.run_all"].assert_called_once()
-        salt_mock["cmd.run_all"].assert_called_with(
-            ["btrfs", "subvolume", "list", "/mnt"]
-        )
+        salt_mock["cmd.run_all"].assert_called_with(["btrfs", "subvolume", "list", "/mnt"])
 
 
 def test_subvolume_list():
@@ -736,9 +722,7 @@ def test_subvolume_show():
             },
         }
         salt_mock["cmd.run_all"].assert_called_once()
-        salt_mock["cmd.run_all"].assert_called_with(
-            ["btrfs", "subvolume", "show", "/var"]
-        )
+        salt_mock["cmd.run_all"].assert_called_with(["btrfs", "subvolume", "show", "/var"])
 
 
 def test_subvolume_sync_fail_parameters():

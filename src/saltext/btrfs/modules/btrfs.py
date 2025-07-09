@@ -157,9 +157,7 @@ def defragment(path):
             and not d_res["passed"]
             and "range ioctl not supported" in d_res["log"]
         ):
-            d_res["log"] = (
-                "Range ioctl defragmentation is not supported in this kernel."
-            )
+            d_res["log"] = "Range ioctl defragmentation is not supported in this kernel."
 
         if not is_mountpoint:
             d_res["mount_point"] = False
@@ -184,9 +182,7 @@ def features():
     salt.utils.fsutils._verify_run(out)
 
     ret = {}
-    for line in [
-        re.sub(r"\s+", " ", line) for line in out["stderr"].split("\n") if " - " in line
-    ]:
+    for line in [re.sub(r"\s+", " ", line) for line in out["stderr"].split("\n") if " - " in line]:
         option, description = line.split(" - ", 1)
         ret[option] = description
 
@@ -199,11 +195,7 @@ def _usage_overall(raw):
     """
     data = {}
     for line in raw.split("\n")[1:]:
-        keyset = [
-            item.strip()
-            for item in re.sub(r"\s+", " ", line).split(":", 1)
-            if item.strip()
-        ]
+        keyset = [item.strip() for item in re.sub(r"\s+", " ", line).split(":", 1) if item.strip()]
         if len(keyset) == 2:
             key = re.sub(r"[()]", "", keyset[0]).replace(" ", "_").lower()
             if key in ["free_estimated", "global_reserve"]:  # An extra field
@@ -351,9 +343,7 @@ def mkfs(*devices, **kwargs):
 
     if kwargs.get("uuid"):
         cmd.append(
-            "-U {}".format(
-                kwargs.get("uuid") is True and uuid.uuid1() or kwargs.get("uuid")
-            )
+            "-U {}".format(kwargs.get("uuid") is True and uuid.uuid1() or kwargs.get("uuid"))
         )
 
     if kwargs.get("nodiscard"):
@@ -391,9 +381,7 @@ def resize(mountpoint, size):
 
     if size == "max":
         if not salt.utils.fsutils._is_device(mountpoint):
-            raise CommandExecutionError(
-                f'Mountpoint "{mountpoint}" should be a valid device'
-            )
+            raise CommandExecutionError(f'Mountpoint "{mountpoint}" should be a valid device')
         if not salt.utils.fsutils._get_mounts("btrfs").get(mountpoint):
             raise CommandExecutionError(f'Device "{mountpoint}" should be mounted')
     elif (
@@ -403,9 +391,7 @@ def resize(mountpoint, size):
         or re.sub(r"\d", "", size[1:][:-1])
     ):
         raise CommandExecutionError(
-            'Unknown size: "{}". Expected: [+/-]<newsize>[kKmMgGtTpPeE]|max'.format(
-                size
-            )
+            f'Unknown size: "{size}". Expected: [+/-]<newsize>[kKmMgGtTpPeE]|max'
         )
 
     out = __salt__["cmd.run_all"](f"btrfs filesystem resize {size} {mountpoint}")
@@ -471,9 +457,7 @@ def convert(device, permanent=False, keeplf=False):
 
     if not devices[device]["type"] in ["ext2", "ext3", "ext4"]:
         raise CommandExecutionError(
-            'The device "{}" is a "{}" file system.'.format(
-                device, devices[device]["type"]
-            )
+            'The device "{}" is a "{}" file system.'.format(device, devices[device]["type"])
         )
 
     mountpoint = (
@@ -509,9 +493,7 @@ documentation regarding this topic.
     }
 
     salt.utils.fsutils._verify_run(__salt__["cmd.run_all"](f"btrfs-convert {device}"))
-    salt.utils.fsutils._verify_run(
-        __salt__["cmd.run_all"](f"mount {device} {mountpoint}")
-    )
+    salt.utils.fsutils._verify_run(__salt__["cmd.run_all"](f"mount {device} {mountpoint}"))
 
     # Refresh devices
     out = __salt__["cmd.run_all"]("blkid -o export")
@@ -564,9 +546,7 @@ def _restripe(mountpoint, direction, *devices, **kwargs):
     fs_log = []
 
     if salt.utils.fsutils._is_device(mountpoint):
-        raise CommandExecutionError(
-            f'Mountpount expected, while device "{mountpoint}" specified'
-        )
+        raise CommandExecutionError(f'Mountpount expected, while device "{mountpoint}" specified')
 
     mounted = False
     for device, mntpoints in salt.utils.fsutils._get_mounts("btrfs").items():
@@ -576,9 +556,7 @@ def _restripe(mountpoint, direction, *devices, **kwargs):
                 break
 
     if not mounted:
-        raise CommandExecutionError(
-            f'No BTRFS device mounted on "{mountpoint}" mountpoint'
-        )
+        raise CommandExecutionError(f'No BTRFS device mounted on "{mountpoint}" mountpoint')
 
     if not devices:
         raise CommandExecutionError("No devices specified.")
@@ -714,13 +692,12 @@ def properties(obj, type=None, set=None):
     if set:
         try:
             for key, value in [
-                [item.strip() for item in keyset.split("=")]
-                for keyset in set.split(",")
+                [item.strip() for item in keyset.split("=")] for keyset in set.split(",")
             ]:
                 cmd.append(key)
                 cmd.append(value)
         except Exception as ex:  # pylint: disable=broad-except
-            raise CommandExecutionError(ex)
+            raise CommandExecutionError(ex) from ex
 
     out = __salt__["cmd.run_all"](" ".join(cmd))
     salt.utils.fsutils._verify_run(out)
@@ -729,9 +706,7 @@ def properties(obj, type=None, set=None):
         ret = {}
         for prop, descr in _parse_proplist(out["stdout"]).items():
             ret[prop] = {"description": descr}
-            value = __salt__["cmd.run_all"](f"btrfs property get {obj} {prop}")[
-                "stdout"
-            ]
+            value = __salt__["cmd.run_all"](f"btrfs property get {obj} {prop}")["stdout"]
             ret[prop]["value"] = value and value.split("=")[-1] or "N/A"
 
         return ret
@@ -782,6 +757,7 @@ def subvolume_create(name, dest=None, qgroupids=None):
         salt '*' btrfs.subvolume_create var qgroupids='[200]'
 
     """
+    #  pylint: disable-next=unidiomatic-typecheck
     if qgroupids and type(qgroupids) is not list:
         raise CommandExecutionError("Qgroupids parameter must be a list")
 
@@ -793,6 +769,7 @@ def subvolume_create(name, dest=None, qgroupids=None):
         return False
 
     cmd = ["btrfs", "subvolume", "create"]
+    #  pylint: disable-next=unidiomatic-typecheck
     if type(qgroupids) is list:
         cmd.append("-i")
         cmd.extend(qgroupids)
@@ -835,6 +812,7 @@ def subvolume_delete(name=None, names=None, commit=None):
         salt '*' btrfs.subvolume_delete /var/volumes/tmp commit=after
 
     """
+    #  pylint: disable-next=unidiomatic-typecheck
     if not name and not (names and type(names) is list):
         raise CommandExecutionError("Provide a value for the name parameter")
 
@@ -842,9 +820,7 @@ def subvolume_delete(name=None, names=None, commit=None):
         raise CommandExecutionError("Value for commit not recognized")
 
     # Filter the names and take the ones that are still there
-    names = [
-        n for n in itertools.chain([name], names or []) if n and subvolume_exists(n)
-    ]
+    names = [n for n in itertools.chain([name], names or []) if n and subvolume_exists(n)]
 
     # If the subvolumes are gone, we are done
     if not names:
@@ -1041,14 +1017,13 @@ def subvolume_list(
         salt '*' btrfs.subvolume_list /var/volumes/tmp sort='[-rootid]'
 
     """
+    #  pylint: disable-next=unidiomatic-typecheck
     if sort and type(sort) is not list:
         raise CommandExecutionError("Sort parameter must be a list")
 
     valid_sorts = [
         "".join((order, attrib))
-        for order, attrib in itertools.product(
-            ("-", "", "+"), ("rootid", "gen", "ogen", "path")
-        )
+        for order, attrib in itertools.product(("-", "", "+"), ("rootid", "gen", "ogen", "path"))
     ]
     if sort and not all(s in valid_sorts for s in sort):
         raise CommandExecutionError("Value for sort not recognized")
@@ -1244,6 +1219,7 @@ def subvolume_sync(path, subvolids=None, sleep=None):
         salt '*' btrfs.subvolume_sync /var/volumes/tmp subvolids='[257]'
 
     """
+    #  pylint: disable-next=unidiomatic-typecheck
     if subvolids and type(subvolids) is not list:
         raise CommandExecutionError("Subvolids parameter must be a list")
 
