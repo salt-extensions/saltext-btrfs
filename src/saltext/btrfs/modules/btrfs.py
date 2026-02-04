@@ -16,6 +16,7 @@
 """
 Module for managing BTRFS file systems.
 """
+
 import itertools
 import os
 import re
@@ -466,8 +467,7 @@ def convert(device, permanent=False, keeplf=False):
         .get("mount_point")
     )
     if mountpoint == "/":
-        raise CommandExecutionError(
-            """One does not simply converts a root filesystem!
+        raise CommandExecutionError("""One does not simply converts a root filesystem!
 
 Converting an extended root filesystem to BTRFS is a careful
 and lengthy process, among other steps including the following
@@ -479,8 +479,7 @@ requirements:
 
 For further details, please refer to your OS vendor
 documentation regarding this topic.
-"""
-        )
+""")
 
     salt.utils.fsutils._verify_run(__salt__["cmd.run_all"](f"umount {device}"))
 
